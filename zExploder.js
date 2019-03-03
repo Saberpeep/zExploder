@@ -57,9 +57,9 @@
 
             return $(this).css('z-index') != "auto";
         });
-        zExploder.DEBUG_MODE && console.log("elements with z-index set: ", elementsWithzindex);
+        zExploder.DEBUG_MODE && console.log("zExploder: elements with z-index set: ", elementsWithzindex);
         uniqueIndexes = uniqueIndexes.sort(function(a, b){return a - b});
-        zExploder.DEBUG_MODE && console.log("unique z-indexes: ", uniqueIndexes);
+        zExploder.DEBUG_MODE && console.log("zExploder: unique z-indexes: ", uniqueIndexes);
 
         //-assemble layers array
         //--fill out blank layers
@@ -79,7 +79,7 @@
                 }
             }
         });
-        console.log("zExploder layers: ", zExploder.layers);
+        console.log("zExploder: layers generated: ", zExploder.layers);
 
         //RENDER
         //-generate transform css string for the body el
@@ -107,6 +107,7 @@
             "height": "100%"
         });
         
+        //-apply styles to layers
         for (var i = 0; i < zExploder.layers.length; i++){
             //each layer
             for (var j =0; j < zExploder.layers[i].els.length; j++){
@@ -115,26 +116,37 @@
                 //calculate parent offset
                 // This is needed because children are translated with their parents, 
                 // and this is used to offset that, so child translations are independant.
+                
+                //gather parents of this element that are also present in the array elementsWithzindex
                 var parentsWithTransform = $this.parents().filter(function() {
-                    var $this = $(this);
-                    return $this.css('transform') != "none" && $this[0] != $body[0];
+                    var thisParent = this;
+                    var found = false;
+                    elementsWithzindex.each(function(){
+                        if (this == thisParent){
+                            found = true;  
+                        }
+                    });
+                    return found;
                 });
-                var totalParentOffset = 0
+                var totalParentDepth = 0
                 parentsWithTransform.each(function(){
-                    totalParentOffset += getTranslateZ(this);
+                    totalParentDepth++;
                 })
+                if (totalParentDepth != 0){
+                    zExploder.DEBUG_MODE && console.log("zExploder: Element adjusted by parent depth", totalParentDepth, $this[0], parentsWithTransform);
+                } 
                 //apply css
                 // Multiplying the default LAYER_DEPTH pixels by the layer number
                 // gives the layers a consistent relative 3d offset based on their layer order,
                 // rather than absolute z-index.
                 $this.css({
-                    "transform": "translateZ(" + ((zExploder.LAYER_DEPTH * i) - totalParentOffset) + "px)",
+                    "transform": "translateZ(" + ((zExploder.LAYER_DEPTH * i) - (zExploder.LAYER_DEPTH * totalParentDepth)) + "px)",
                     "border": "1px solid red"
                 });
             }
         }
         
-        //returns value in px of translateZ on given element
+        //-returns value in px of translateZ on given element
         function getTranslateZ(el) {
             var obj = $(el);
             var matrix = obj.css("transform");
@@ -147,14 +159,14 @@
         var elementsWithTransform = $('*').filter(function() {
             return $(this).css('transform') != "none";
         });
-        zExploder.DEBUG_MODE && console.log("elements with transform set: ", elementsWithTransform);
+        zExploder.DEBUG_MODE && console.log("zExploder: elements with transform set: ", elementsWithTransform, "(changing to preserve-3d...)");
         elementsWithTransform.css("transform-style", "preserve-3d");
         
         //-gather elements that have position set to fixed, and change it to absolute
         var elementsWithFixed = $('*').filter(function() {
             return $(this).css('position') == "fixed";
         });
-        zExploder.DEBUG_MODE && console.log("elements with position set to fixed: ", elementsWithFixed);
+        zExploder.DEBUG_MODE && console.log("zExploder: elements with position set to fixed: ", elementsWithFixed, "(changing to absolute...)");
         elementsWithFixed.css("position", "absolute");
         
         
@@ -163,16 +175,16 @@
         //-rotate on drag
         $html
         .on('mousedown', function (e) {
-            zExploder.DEBUG_MODE && console.log("mouse down");
+            zExploder.DEBUG_MODE && console.log("zExploder: mouse down");
             startX = e.pageX - offset;
         })
         .on('mouseup', function() {
-            zExploder.DEBUG_MODE && console.log("mouse up");
+            zExploder.DEBUG_MODE && console.log("zExploder: mouse up");
             startX = null;
         });
         $html[0].onmousemove = function (e) {
             if(startX) {
-                zExploder.DEBUG_MODE && console.log("mouse drag");
+                zExploder.DEBUG_MODE && console.log("zExploder: mouse drag");
                 offset = e.pageX - startX;
                 if (offset > 360){
                     offset = 0;
@@ -186,13 +198,13 @@
             }
             /*detect if mouse leaves window*/
             $html[0].onmouseleave = function(e) {
-                zExploder.DEBUG_MODE && console.log("mouse out");
+                zExploder.DEBUG_MODE && console.log("zExploder: mouse out");
                 $("#demowrap").trigger("mouseup");
             };
         };
         //-override image dragging
         $("img").on('mousedown', function (e) {
-            zExploder.DEBUG_MODE && console.log("image drag prevented");
+            zExploder.DEBUG_MODE && console.log("zExploder: image drag prevented");
             e.preventDefault();
         });
         $("img").on("mousemove", function(e) {
@@ -200,7 +212,7 @@
         });
         //-zoom on scroll
         $html[0].addEventListener("wheel", function(e){
-            zExploder.DEBUG_MODE && console.log("wheel");
+            zExploder.DEBUG_MODE && console.log("zExploder: wheel");
             e.preventDefault();
             $body.css("transform", getBodyTransformString(null, lastZoom = lastZoom + (e.deltaY / -10)));
         });
